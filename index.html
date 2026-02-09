@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Trợ Lý Ghi Chú Cuộc Họp AI - Bản quyền © 2025 by Phạm Hồng Long & Brown Eyes</title>
+    <title>Trợ Lý Ghi Chú Cuộc Họp AI</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
@@ -15,9 +15,10 @@
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
         body { font-family: 'Inter', sans-serif; background-color: #f1f5f9; }
         .editor-box { min-height: 450px; outline: none; transition: all 0.2s; }
+        .editor-box:focus { border-color: #2563eb; ring: 2px rgba(37,99,235,0.1); }
         .recording-active { animation: pulse 1.5s infinite; color: #ef4444; }
         @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }
-        img { max-width: 100%; border-radius: 12px; margin: 15px 0; display: block; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        img { max-width: 100%; border-radius: 8px; margin: 15px 0; display: block; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); }
         #temp-text { color: #94a3b8; font-style: italic; }
     </style>
 </head>
@@ -27,12 +28,12 @@
         <div class="bg-blue-700 p-6 text-white flex justify-between items-center">
             <div>
                 <h1 class="text-2xl font-bold flex items-center gap-2">
-                    <i class="fa-solid fa-microphone-lines"></i> AI MEETING NOTES PRO
+                    <i class="fa-solid fa-microphone-lines"></i> AI MEETING NOTES
                 </h1>
                 <p class="text-xs text-blue-100 uppercase tracking-widest mt-1">Bản quyền © 2025 by Phạm Hồng Long & Brown Eyes</p>
             </div>
             <div id="statusIndicator" class="hidden items-center gap-2 bg-white/20 px-4 py-1.5 rounded-full text-xs font-bold border border-white/30">
-                <i class="fa-solid fa-circle recording-active"></i> ĐANG THU ÂM
+                <i class="fa-solid fa-circle recording-active"></i> ĐANG GHI ÂM
             </div>
         </div>
 
@@ -58,13 +59,13 @@
 
         <div class="p-4 md:p-8">
             <div id="editor" contenteditable="true" class="editor-box w-full p-6 bg-white border-2 border-gray-100 rounded-2xl overflow-y-auto text-gray-800 text-lg leading-relaxed shadow-inner">
-                <p id="placeholder" class="text-gray-400 italic font-light">Máy đã được tối ưu độ nhạy. Hãy bắt đầu nói...</p>
+                <p id="placeholder" class="text-gray-400 italic font-light">Nội dung cuộc họp sẽ tự động hiển thị ở đây khi bạn nói...</p>
             </div>
         </div>
 
         <div class="p-5 bg-gray-50 border-t flex flex-col md:flex-row justify-between items-center gap-4">
             <div class="text-sm text-gray-400 flex items-center gap-2 font-medium">
-                <i class="fa-solid fa-shield-halved"></i> Bảo mật HTTPS trên GitHub Pages
+                <i class="fa-solid fa-cloud-arrow-up"></i> Đang chạy trên GitHub Pages (HTTPS)
             </div>
             <div class="flex gap-3 w-full md:w-auto">
                 <button onclick="exportWord()" class="flex-1 md:flex-none flex items-center justify-center gap-2 bg-blue-50 text-blue-700 hover:bg-blue-100 px-6 py-3 rounded-xl font-bold transition border border-blue-200">
@@ -78,12 +79,11 @@
     </div>
 
     <script>
-        // --- LOGIC NÂNG CẤP ÂM THANH & NHẬN DIỆN ---
+        // --- LOGIC NHẬN DIỆN GIỌNG NÓI ---
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
         let recognition = null;
-        let finalContent = ""; 
+        let finalContent = ""; // Kho lưu trữ chính thức cho văn bản đã xác nhận
         let isFirstResult = true;
-        let audioStream = null;
 
         if (SpeechRecognition) {
             recognition = new SpeechRecognition();
@@ -92,6 +92,7 @@
             recognition.interimResults = true;
 
             recognition.onresult = (event) => {
+                // Xóa placeholder khi bắt đầu có âm thanh
                 if(isFirstResult) {
                     const ph = document.getElementById('placeholder');
                     if(ph) ph.remove();
@@ -99,6 +100,8 @@
                 }
 
                 let interimTranscript = '';
+                
+                // Duyệt qua kết quả từ điểm mới nhất
                 for (let i = event.resultIndex; i < event.results.length; ++i) {
                     const transcript = event.results[i][0].transcript;
                     if (event.results[i].isFinal) {
@@ -107,49 +110,41 @@
                         interimTranscript += transcript;
                     }
                 }
+
                 renderEditor(interimTranscript);
             };
 
             recognition.onerror = (e) => {
                 console.error("Lỗi:", e.error);
-                if(e.error === 'network') alert("Lỗi mạng! Cần có internet để ghi âm.");
+                if(e.error === 'not-allowed') alert("Vui lòng cấp quyền Micro trên trình duyệt!");
             };
         }
 
-        // Kích hoạt Micro với cấu hình nhạy cao
-        async function activateEnhancedAudio() {
-            try {
-                // Ép trình duyệt không lọc bỏ các âm thanh nhỏ/xa
-                audioStream = await navigator.mediaDevices.getUserMedia({ 
-                    audio: {
-                        echoCancellation: false, 
-                        noiseSuppression: false, 
-                        autoGainControl: true 
-                    } 
-                });
-                return true;
-            } catch (err) {
-                console.warn("Không thể kích hoạt bộ tăng cường âm thanh:", err);
-                return false;
-            }
-        }
-
+        // Hàm vẽ lại nội dung lên màn hình để không bị lặp chữ
         function renderEditor(interim = "") {
             const editor = document.getElementById('editor');
-            const images = Array.from(editor.querySelectorAll('img'));
             
+            // Lấy tất cả các thẻ ảnh hiện có để bảo toàn chúng
+            const images = editor.querySelectorAll('img');
+            
+            // Xóa thẻ tạm cũ
             const oldTemp = document.getElementById('temp-text');
             if(oldTemp) oldTemp.remove();
 
+            // Nếu không có nội dung mới chốt, chỉ cập nhật chữ tạm
+            // Để giữ ảnh, ta sử dụng cấu trúc: [Nội dung cũ/Ảnh] + [Text mới chốt] + [Text tạm]
+            // Cách đơn giản nhất để giữ ảnh mà không lặp chữ:
             const tempSpan = document.createElement('span');
             tempSpan.id = 'temp-text';
             tempSpan.innerText = interim;
 
-            // Xây dựng lại nội dung để không lặp
+            // Cập nhật text node cuối cùng
             editor.innerHTML = finalContent;
-            images.forEach(img => editor.appendChild(img));
-            editor.appendChild(tempSpan);
             
+            // Chèn lại ảnh (nếu có) - trong phiên bản đơn giản này ảnh sẽ được append vào sau text
+            images.forEach(img => editor.appendChild(img));
+            
+            editor.appendChild(tempSpan);
             editor.scrollTop = editor.scrollHeight;
             saveToLocal();
         }
@@ -159,16 +154,11 @@
         const stopBtn = document.getElementById('stopBtn');
         const statusInd = document.getElementById('statusIndicator');
 
-        startBtn.onclick = async () => {
-            if (!recognition) return alert("Trình duyệt không hỗ trợ.");
-            
-            // Bước 1: Kích hoạt Micro nhạy cao
-            await activateEnhancedAudio();
-            
-            // Bước 2: Đồng bộ text cũ
+        startBtn.onclick = () => {
+            if (!recognition) return alert("Trình duyệt này không hỗ trợ ghi âm.");
+            // Đồng bộ nội dung hiện tại (phòng trường hợp người dùng xóa/sửa tay)
             finalContent = document.getElementById('editor').innerText.replace("Nội dung...", "");
             
-            // Bước 3: Chạy ghi âm
             recognition.start();
             startBtn.classList.add('hidden');
             stopBtn.classList.remove('hidden');
@@ -177,13 +167,11 @@
 
         stopBtn.onclick = () => {
             recognition.stop();
-            if (audioStream) {
-                audioStream.getTracks().forEach(track => track.stop());
-            }
             startBtn.classList.remove('hidden');
             stopBtn.classList.add('hidden');
             statusInd.classList.replace('flex', 'hidden');
             
+            // Chuyển chữ tạm thành chữ thật khi dừng
             const temp = document.getElementById('temp-text');
             if(temp && temp.innerText !== "") {
                 finalContent += temp.innerText + '. ';
@@ -191,7 +179,7 @@
             }
         };
 
-        // --- CÁC TÍNH NĂNG PHỤ ---
+        // --- CHÈN ẢNH ---
         document.getElementById('imgInput').onchange = (e) => {
             const file = e.target.files[0];
             if (file) {
@@ -207,12 +195,13 @@
             }
         };
 
+        // --- XUẤT FILE ---
         function exportPDF() {
             const element = document.getElementById('editor');
             const opt = {
                 margin: 0.5,
-                filename: 'Ghi_chu_cuoc_hop.pdf',
-                image: { type: 'jpeg', quality: 1 },
+                filename: 'Bien_ban_cuoc_hop.pdf',
+                image: { type: 'jpeg', quality: 0.98 },
                 html2canvas: { scale: 2 },
                 jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
             };
@@ -225,7 +214,7 @@
                 sections: [{
                     children: [
                         new docx.Paragraph({
-                            children: [new docx.TextRun({ text: "BIÊN BẢN GHI CHÚ CUỘC HỌP", bold: true, size: 32 })],
+                            children: [new docx.TextRun({ text: "GHI CHÚ CUỘC HỌP AI", bold: true, size: 32 })],
                             spacing: { after: 400 }
                         }),
                         new docx.Paragraph({ text: content, spacing: { line: 360 } })
@@ -235,21 +224,22 @@
             docx.Packer.toBlob(doc).then(blob => saveAs(blob, "Ghi_chu_cuoc_hop.docx"));
         }
 
+        // --- LƯU TRỮ ---
         function saveToLocal() {
-            localStorage.setItem('meeting_note_vfinal', document.getElementById('editor').innerHTML);
+            localStorage.setItem('meeting_note_v2', document.getElementById('editor').innerHTML);
         }
 
         function clearAll() {
-            if(confirm("Xóa toàn bộ dữ liệu?")) {
+            if(confirm("Bạn muốn xóa toàn bộ nội dung để bắt đầu cuộc họp mới?")) {
                 finalContent = "";
-                document.getElementById('editor').innerHTML = '<p id="placeholder" class="text-gray-400 italic">Máy đã được tối ưu độ nhạy. Hãy bắt đầu nói...</p>';
+                document.getElementById('editor').innerHTML = '<p id="placeholder" class="text-gray-400 italic">Nội dung...</p>';
                 isFirstResult = true;
-                localStorage.removeItem('meeting_note_vfinal');
+                localStorage.removeItem('meeting_note_v2');
             }
         }
 
         window.onload = () => {
-            const saved = localStorage.getItem('meeting_note_vfinal');
+            const saved = localStorage.getItem('meeting_note_v2');
             if (saved && saved.length > 20) {
                 document.getElementById('editor').innerHTML = saved;
                 isFirstResult = false;
