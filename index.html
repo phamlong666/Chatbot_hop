@@ -13,126 +13,152 @@
 
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
-        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
-        .editor-box { min-height: 400px; outline: none; }
+        body { font-family: 'Inter', sans-serif; background-color: #f1f5f9; }
+        .editor-box { min-height: 450px; outline: none; transition: all 0.2s; }
+        .editor-box:focus { border-color: #2563eb; ring: 2px rgba(37,99,235,0.1); }
         .recording-active { animation: pulse 1.5s infinite; color: #ef4444; }
-        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.4; } 100% { opacity: 1; } }
-        img { max-width: 100%; border-radius: 8px; margin: 12px 0; border: 1px solid #e2e8f0; }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }
+        img { max-width: 100%; border-radius: 8px; margin: 15px 0; display: block; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); }
+        #temp-text { color: #94a3b8; font-style: italic; }
     </style>
 </head>
 <body class="p-2 md:p-6">
 
-    <div class="max-w-4xl mx-auto bg-white shadow-2xl rounded-2xl overflow-hidden border border-gray-200">
-        <div class="bg-blue-600 p-5 text-white flex justify-between items-center">
+    <div class="max-w-4xl mx-auto bg-white shadow-2xl rounded-2xl overflow-hidden border border-gray-100">
+        <div class="bg-blue-700 p-6 text-white flex justify-between items-center">
             <div>
-                <h1 class="text-xl font-bold flex items-center gap-2">
+                <h1 class="text-2xl font-bold flex items-center gap-2">
                     <i class="fa-solid fa-microphone-lines"></i> AI MEETING NOTES
                 </h1>
-                <p class="text-xs text-blue-100 uppercase tracking-widest">Chuyển giọng nói sang văn bản</p>
+                <p class="text-xs text-blue-100 uppercase tracking-widest mt-1">Ghi chú cuộc họp không cần chép tay</p>
             </div>
-            <div id="statusIndicator" class="hidden items-center gap-2 bg-white/20 px-3 py-1 rounded-full text-xs font-bold">
+            <div id="statusIndicator" class="hidden items-center gap-2 bg-white/20 px-4 py-1.5 rounded-full text-xs font-bold border border-white/30">
                 <i class="fa-solid fa-circle recording-active"></i> ĐANG GHI ÂM
             </div>
         </div>
 
         <div class="p-3 bg-gray-50 border-b flex flex-wrap gap-2 items-center">
-            <button id="startBtn" class="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition font-semibold">
-                <i class="fa-solid fa-play"></i> Bắt đầu
+            <button id="startBtn" class="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-5 py-2.5 rounded-xl transition font-bold shadow-sm">
+                <i class="fa-solid fa-play"></i> Bắt đầu ghi
             </button>
-            <button id="stopBtn" class="hidden flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition font-semibold">
-                <i class="fa-solid fa-stop"></i> Dừng lại
+            <button id="stopBtn" class="hidden flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white px-5 py-2.5 rounded-xl transition font-bold shadow-sm">
+                <i class="fa-solid fa-stop"></i> Dừng & Lưu
             </button>
 
-            <div class="h-6 w-px bg-gray-300 mx-1"></div>
+            <div class="h-8 w-px bg-gray-300 mx-2"></div>
 
-            <button onclick="document.getElementById('imgInput').click()" class="flex items-center gap-2 bg-white border border-gray-300 hover:bg-gray-100 px-4 py-2 rounded-lg transition">
+            <button onclick="document.getElementById('imgInput').click()" class="flex items-center gap-2 bg-white border border-gray-300 hover:bg-gray-100 px-4 py-2.5 rounded-xl transition font-medium">
                 <i class="fa-solid fa-image text-blue-500"></i> Chèn ảnh
             </button>
             <input type="file" id="imgInput" accept="image/*" class="hidden">
 
-            <button onclick="clearAll()" class="flex items-center gap-2 text-gray-500 hover:text-red-600 px-4 py-2 transition ml-auto">
-                <i class="fa-solid fa-trash-can"></i> Xóa
+            <button onclick="clearAll()" class="flex items-center gap-2 text-gray-400 hover:text-red-600 px-4 py-2.5 transition ml-auto font-medium">
+                <i class="fa-solid fa-trash-can"></i> Xóa hết
             </button>
         </div>
 
-        <div class="p-4 md:p-6">
-            <div id="editor" contenteditable="true" class="editor-box w-full p-4 bg-white border border-gray-200 rounded-xl overflow-y-auto text-gray-700 text-lg leading-relaxed shadow-inner">
-                <p id="placeholder" class="text-gray-400 italic">Nội dung ghi âm hoặc văn bản nhập tay sẽ hiển thị ở đây...</p>
+        <div class="p-4 md:p-8">
+            <div id="editor" contenteditable="true" class="editor-box w-full p-6 bg-white border-2 border-gray-100 rounded-2xl overflow-y-auto text-gray-800 text-lg leading-relaxed shadow-inner">
+                <p id="placeholder" class="text-gray-400 italic font-light">Nội dung cuộc họp sẽ tự động hiển thị ở đây khi bạn nói...</p>
             </div>
         </div>
 
-        <div class="p-4 bg-gray-50 border-t flex flex-col md:flex-row justify-between items-center gap-4">
-            <div class="text-sm text-gray-500">
-                <i class="fa-solid fa-circle-info"></i> Tự động lưu bản nháp vào trình duyệt
+        <div class="p-5 bg-gray-50 border-t flex flex-col md:flex-row justify-between items-center gap-4">
+            <div class="text-sm text-gray-400 flex items-center gap-2 font-medium">
+                <i class="fa-solid fa-cloud-arrow-up"></i> Đang chạy trên GitHub Pages (HTTPS)
             </div>
-            <div class="flex gap-2 w-full md:w-auto">
-                <button onclick="exportWord()" class="flex-1 md:flex-none flex items-center justify-center gap-2 bg-blue-100 text-blue-700 hover:bg-blue-200 px-5 py-2 rounded-lg font-bold transition">
-                    <i class="fa-solid fa-file-word"></i> Word
+            <div class="flex gap-3 w-full md:w-auto">
+                <button onclick="exportWord()" class="flex-1 md:flex-none flex items-center justify-center gap-2 bg-blue-50 text-blue-700 hover:bg-blue-100 px-6 py-3 rounded-xl font-bold transition border border-blue-200">
+                    <i class="fa-solid fa-file-word"></i> Xuất Word
                 </button>
-                <button onclick="exportPDF()" class="flex-1 md:flex-none flex items-center justify-center gap-2 bg-gray-800 text-white hover:bg-black px-5 py-2 rounded-lg font-bold transition">
-                    <i class="fa-solid fa-file-pdf"></i> PDF
+                <button onclick="exportPDF()" class="flex-1 md:flex-none flex items-center justify-center gap-2 bg-gray-900 text-white hover:bg-black px-6 py-3 rounded-xl font-bold transition">
+                    <i class="fa-solid fa-file-pdf"></i> Xuất PDF
                 </button>
             </div>
         </div>
     </div>
 
     <script>
-        // --- CẤU HÌNH NHẬN DIỆN GIỌNG NÓI ---
+        // --- LOGIC NHẬN DIỆN GIỌNG NÓI ---
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
         let recognition = null;
-        let isFirst = true;
+        let finalContent = ""; // Kho lưu trữ chính thức cho văn bản đã xác nhận
+        let isFirstResult = true;
 
         if (SpeechRecognition) {
             recognition = new SpeechRecognition();
             recognition.lang = 'vi-VN';
             recognition.continuous = true;
-            recognition.interimResults = true; // Hiện chữ ngay khi đang nói
+            recognition.interimResults = true;
 
             recognition.onresult = (event) => {
-                if(isFirst) { document.getElementById('placeholder').remove(); isFirst = false; }
-                
-                let interimTranscript = '';
-                let finalTranscript = '';
+                // Xóa placeholder khi bắt đầu có âm thanh
+                if(isFirstResult) {
+                    const ph = document.getElementById('placeholder');
+                    if(ph) ph.remove();
+                    isFirstResult = false;
+                }
 
+                let interimTranscript = '';
+                
+                // Duyệt qua kết quả từ điểm mới nhất
                 for (let i = event.resultIndex; i < event.results.length; ++i) {
+                    const transcript = event.results[i][0].transcript;
                     if (event.results[i].isFinal) {
-                        finalTranscript += event.results[i][0].transcript + '. ';
+                        finalContent += transcript + '. ';
                     } else {
-                        interimTranscript += event.results[i][0].transcript;
+                        interimTranscript += transcript;
                     }
                 }
 
-                // Xử lý hiển thị thông minh: Text đang nói hiện màu xám, text đã chốt hiện màu đen
-                let tempSpan = document.getElementById('temp-text');
-                if (!tempSpan) {
-                    tempSpan = document.createElement('span');
-                    tempSpan.id = 'temp-text';
-                    tempSpan.className = 'text-gray-400';
-                    document.getElementById('editor').appendChild(tempSpan);
-                }
-                
-                if (finalTranscript) {
-                    const textNode = document.createTextNode(finalTranscript);
-                    document.getElementById('editor').insertBefore(textNode, tempSpan);
-                    saveToLocal();
-                }
-                tempSpan.innerText = interimTranscript;
-                document.getElementById('editor').scrollTop = document.getElementById('editor').scrollHeight;
+                renderEditor(interimTranscript);
             };
 
             recognition.onerror = (e) => {
-                console.error("Lỗi Recognition:", e.error);
-                if(e.error === 'not-allowed') alert("Lỗi: Micro bị chặn. Hãy bật quyền Micro trong cài đặt trình duyệt.");
+                console.error("Lỗi:", e.error);
+                if(e.error === 'not-allowed') alert("Vui lòng cấp quyền Micro trên trình duyệt!");
             };
         }
 
-        // --- ĐIỀU KHIỂN NÚT BẤM ---
+        // Hàm vẽ lại nội dung lên màn hình để không bị lặp chữ
+        function renderEditor(interim = "") {
+            const editor = document.getElementById('editor');
+            
+            // Lấy tất cả các thẻ ảnh hiện có để bảo toàn chúng
+            const images = editor.querySelectorAll('img');
+            
+            // Xóa thẻ tạm cũ
+            const oldTemp = document.getElementById('temp-text');
+            if(oldTemp) oldTemp.remove();
+
+            // Nếu không có nội dung mới chốt, chỉ cập nhật chữ tạm
+            // Để giữ ảnh, ta sử dụng cấu trúc: [Nội dung cũ/Ảnh] + [Text mới chốt] + [Text tạm]
+            // Cách đơn giản nhất để giữ ảnh mà không lặp chữ:
+            const tempSpan = document.createElement('span');
+            tempSpan.id = 'temp-text';
+            tempSpan.innerText = interim;
+
+            // Cập nhật text node cuối cùng
+            editor.innerHTML = finalContent;
+            
+            // Chèn lại ảnh (nếu có) - trong phiên bản đơn giản này ảnh sẽ được append vào sau text
+            images.forEach(img => editor.appendChild(img));
+            
+            editor.appendChild(tempSpan);
+            editor.scrollTop = editor.scrollHeight;
+            saveToLocal();
+        }
+
+        // --- ĐIỀU KHIỂN ---
         const startBtn = document.getElementById('startBtn');
         const stopBtn = document.getElementById('stopBtn');
         const statusInd = document.getElementById('statusIndicator');
 
         startBtn.onclick = () => {
-            if (!recognition) return alert("Trình duyệt không hỗ trợ Web Speech API.");
+            if (!recognition) return alert("Trình duyệt này không hỗ trợ ghi âm.");
+            // Đồng bộ nội dung hiện tại (phòng trường hợp người dùng xóa/sửa tay)
+            finalContent = document.getElementById('editor').innerText.replace("Nội dung...", "");
+            
             recognition.start();
             startBtn.classList.add('hidden');
             stopBtn.classList.remove('hidden');
@@ -141,23 +167,28 @@
 
         stopBtn.onclick = () => {
             recognition.stop();
-            stopBtn.classList.add('hidden');
             startBtn.classList.remove('hidden');
+            stopBtn.classList.add('hidden');
             statusInd.classList.replace('flex', 'hidden');
-            if(document.getElementById('temp-text')) document.getElementById('temp-text').remove();
+            
+            // Chuyển chữ tạm thành chữ thật khi dừng
+            const temp = document.getElementById('temp-text');
+            if(temp && temp.innerText !== "") {
+                finalContent += temp.innerText + '. ';
+                temp.remove();
+            }
         };
 
         // --- CHÈN ẢNH ---
         document.getElementById('imgInput').onchange = (e) => {
-            if(isFirst) { document.getElementById('placeholder').remove(); isFirst = false; }
             const file = e.target.files[0];
             if (file) {
+                if(isFirstResult) { document.getElementById('editor').innerHTML = ""; isFirstResult = false; }
                 const reader = new FileReader();
                 reader.onload = (ev) => {
                     const img = document.createElement('img');
                     img.src = ev.target.result;
                     document.getElementById('editor').appendChild(img);
-                    document.getElementById('editor').appendChild(document.createElement('br'));
                     saveToLocal();
                 };
                 reader.readAsDataURL(file);
@@ -169,8 +200,8 @@
             const element = document.getElementById('editor');
             const opt = {
                 margin: 0.5,
-                filename: 'Meeting_Notes.pdf',
-                image: { type: 'jpeg', quality: 1 },
+                filename: 'Bien_ban_cuoc_hop.pdf',
+                image: { type: 'jpeg', quality: 0.98 },
                 html2canvas: { scale: 2 },
                 jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
             };
@@ -183,34 +214,36 @@
                 sections: [{
                     children: [
                         new docx.Paragraph({
-                            children: [new docx.TextRun({ text: "GHI CHÚ CUỘC HỌP", bold: true, size: 36 })],
+                            children: [new docx.TextRun({ text: "GHI CHÚ CUỘC HỌP AI", bold: true, size: 32 })],
                             spacing: { after: 400 }
                         }),
                         new docx.Paragraph({ text: content, spacing: { line: 360 } })
                     ]
                 }]
             });
-            docx.Packer.toBlob(doc).then(blob => saveAs(blob, "Meeting_Notes.docx"));
+            docx.Packer.toBlob(doc).then(blob => saveAs(blob, "Ghi_chu_cuoc_hop.docx"));
         }
 
         // --- LƯU TRỮ ---
         function saveToLocal() {
-            localStorage.setItem('notes_backup', document.getElementById('editor').innerHTML);
+            localStorage.setItem('meeting_note_v2', document.getElementById('editor').innerHTML);
         }
 
         function clearAll() {
-            if(confirm("Xóa toàn bộ nội dung?")) {
+            if(confirm("Bạn muốn xóa toàn bộ nội dung để bắt đầu cuộc họp mới?")) {
+                finalContent = "";
                 document.getElementById('editor').innerHTML = '<p id="placeholder" class="text-gray-400 italic">Nội dung...</p>';
-                isFirst = true;
-                localStorage.removeItem('notes_backup');
+                isFirstResult = true;
+                localStorage.removeItem('meeting_note_v2');
             }
         }
 
         window.onload = () => {
-            const data = localStorage.getItem('notes_backup');
-            if (data && data.includes('<')) {
-                document.getElementById('editor').innerHTML = data;
-                isFirst = false;
+            const saved = localStorage.getItem('meeting_note_v2');
+            if (saved && saved.length > 20) {
+                document.getElementById('editor').innerHTML = saved;
+                isFirstResult = false;
+                finalContent = document.getElementById('editor').innerText;
             }
         };
     </script>
