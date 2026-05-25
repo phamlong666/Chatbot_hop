@@ -577,7 +577,28 @@
 
     const data = await response.json();
 
-    console.log("DATA AI:", data);
+console.log("DATA AI:", data);
+
+if (data.error) {
+
+    console.error("GEMINI ERROR:", data.error);
+
+    alert(data.error.message);
+
+    return;
+}
+
+const result =
+    data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+
+if (!result) {
+
+    console.error("Gemini không trả dữ liệu");
+
+    alert("AI không trả kết quả");
+
+    return;
+}
 
     // =========================
     // LẤY KẾT QUẢ GEMINI
