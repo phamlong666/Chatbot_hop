@@ -574,13 +574,28 @@
             }
         );
 
-        const data =
-    await response.json();
+        const data = await response.json();
 
-console.log(data);
+console.log("DATA AI:", data);
 
 const result =
-    data.choices?.[0]?.message?.content || "";
+    data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+
+if (!result) {
+
+    console.error("Gemini không trả dữ liệu");
+
+    alert("AI không trả kết quả");
+
+    return;
+}
+
+document.getElementById('summaryContent').innerText =
+    result;
+
+currentSegment.summary = result;
+
+autoSave();
 
         // ======================
         // PARSE AI RESULT
