@@ -560,103 +560,132 @@
 
     try {
 
-        const response = await fetch('https://chatbot-hop.vercel.app/api/summary',
-            {
-                method: 'POST',
+    const response = await fetch(
+        'https://chatbot-hop.vercel.app/api/summary',
+        {
+            method: 'POST',
 
-                headers: {
-                    'Content-Type': 'application/json'
-                },
+            headers: {
+                'Content-Type': 'application/json'
+            },
 
-                body: JSON.stringify({
-                    content
-                })
-            }
-        );
+            body: JSON.stringify({
+                content
+            })
+        }
+    );
 
-        const data = await response.json();
+    const data = await response.json();
 
-console.log("DATA AI:", data);
+    console.log("DATA AI:", data);
 
-const result =
-    data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+    // =========================
+    // LẤY KẾT QUẢ GEMINI
+    // =========================
 
-if (!result) {
+    const result =
+        data.candidates?.[0]?.content?.parts?.[0]?.text || "";
 
-    console.error("Gemini không trả dữ liệu");
+    // =========================
+    // KIỂM TRA KẾT QUẢ
+    // =========================
 
-    alert("AI không trả kết quả");
+    if (!result || result.trim() === "") {
 
-    return;
-}
+        console.error("Gemini không trả dữ liệu");
 
-document.getElementById('summaryContent').innerText =
-    result;
+        alert("AI không trả kết quả");
 
-currentSegment.summary = result;
+        document.getElementById('summaryContent').innerText =
+            "Không có dữ liệu AI";
 
-autoSave();
+        document.getElementById('actionContent').innerText =
+            "Không có dữ liệu AI";
 
-        // ======================
-        // PARSE AI RESULT
-        // ======================
+        document.getElementById('conclusionContent').innerText =
+            "Không có dữ liệu AI";
 
-        let summary = "";
-        let actions = "";
-        let conclusion = "";
+        return;
+    }
 
-        if (result.includes("CÔNG VIỆC:")) {
+    // =========================
+    // HIỂN THỊ RAW RESULT
+    // =========================
 
-            const parts =
-                result.split("CÔNG VIỆC:");
+    document.getElementById('summaryContent').innerText =
+        result;
 
-            summary =
-                parts[0]
-                .replace("TÓM TẮT:", "")
-                .trim();
+    // =========================
+    // TÁCH CÁC PHẦN
+    // =========================
 
-            const subParts =
-                parts[1].split("KẾT LUẬN:");
+    let summary = "";
+    let actions = "";
+    let conclusion = "";
+
+    if (result.includes("CÔNG VIỆC:")) {
+
+        const summaryPart =
+            result.split("CÔNG VIỆC:")[0];
+
+        summary =
+            summaryPart.replace("TÓM TẮT:", "").trim();
+
+        const remain =
+            result.split("CÔNG VIỆC:")[1];
+
+        if (remain.includes("KẾT LUẬN:")) {
 
             actions =
-                subParts[0].trim();
+                remain.split("KẾT LUẬN:")[0].trim();
 
             conclusion =
-                subParts[1]
-                ? subParts[1].trim()
-                : "";
+                remain.split("KẾT LUẬN:")[1].trim();
 
         } else {
 
-            summary = result;
+            actions = remain.trim();
         }
 
-        document.getElementById('summaryContent').innerText =
-            summary;
+    } else {
 
-        document.getElementById('actionContent').innerText =
-            actions;
-
-        document.getElementById('conclusionContent').innerText =
-            conclusion;
-
-        currentSegment.summary =
-            summary;
-
-        currentSegment.actions =
-            actions;
-
-        currentSegment.conclusion =
-            conclusion;
-
-        autoSave();
-
-    } catch (error) {
-
-        console.error(error);
-
-        alert("Lỗi AI");
+        summary = result;
     }
+
+    // =========================
+    // HIỂN THỊ GIAO DIỆN
+    // =========================
+
+    document.getElementById('summaryContent').innerText =
+        summary || "Không có tóm tắt";
+
+    document.getElementById('actionContent').innerText =
+        actions || "Không có công việc";
+
+    document.getElementById('conclusionContent').innerText =
+        conclusion || "Không có kết luận";
+
+    // =========================
+    // LƯU DỮ LIỆU
+    // =========================
+
+    currentSegment.summary =
+        summary;
+
+    currentSegment.actions =
+        actions;
+
+    currentSegment.conclusion =
+        conclusion;
+
+    autoSave();
+
+} catch (error) {
+
+    console.error("LỖI AI:", error);
+
+    alert("Lỗi AI: " + error.message);
+}
 };
 
         // =========================
