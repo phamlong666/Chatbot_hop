@@ -24,30 +24,24 @@ export default async function handler(req, res) {
         const { content } = req.body;
 
         const response = await fetch(
-            'https://api.openai.com/v1/chat/completions',
+            `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
             {
                 method: 'POST',
 
                 headers: {
-                    'Content-Type': 'application/json',
-
-                    Authorization:
-                        `Bearer ${process.env.OPENAI_API_KEY}`
+                    'Content-Type': 'application/json'
                 },
 
                 body: JSON.stringify({
 
-                    model: 'gpt-4.1-mini',
-
-                    messages: [
-
+                    contents: [
                         {
-                            role: 'system',
+                            parts: [
+                                {
+                                    text:
+`Bạn là AI tạo biên bản cuộc họp chuyên nghiệp.
 
-                            content:
-`Bạn là AI tạo biên bản cuộc họp.
-
-Hãy trả về đúng format:
+Hãy phân tích nội dung và trả về đúng format:
 
 TÓM TẮT:
 ...
@@ -56,23 +50,26 @@ CÔNG VIỆC:
 ...
 
 KẾT LUẬN:
-...`
-                        },
+...
 
-                        {
-                            role: 'user',
-                            content
+Nội dung cuộc họp:
+${content}`
+                                }
+                            ]
                         }
-                    ],
-
-                    temperature: 0.3
+                    ]
                 })
             }
         );
 
         const data = await response.json();
 
-        res.status(200).json(data);
+        const text =
+            data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+
+        res.status(200).json({
+            result: text
+        });
 
     } catch (error) {
 
