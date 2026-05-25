@@ -560,45 +560,90 @@
 
     try {
 
-    const response = await fetch(
-        'https://chatbot-hop.vercel.app/api/summary',
-        {
-            method: 'POST',
+        const response = await fetch(
+            'https://chatbot-hop.vercel.app/api/summary',
+            {
+                method: 'POST',
 
-            headers: {
-                'Content-Type': 'application/json'
-            },
+                headers: {
+                    'Content-Type': 'application/json'
+                },
 
-            body: JSON.stringify({
-                content
-            })
+                body: JSON.stringify({
+                    content
+                })
+            }
+        );
+
+        const data = await response.json();
+
+        console.log("DATA AI:", data);
+
+        // =========================
+        // GEMINI ERROR
+        // =========================
+
+        if (data.error) {
+
+            console.error(
+                "GEMINI ERROR:",
+                data.error
+            );
+
+            alert(data.error.message);
+
+            return;
         }
-    );
 
-    const data = await response.json();
+        // =========================
+        // GEMINI RESULT
+        // =========================
 
-console.log("DATA AI:", data);
+        const result =
+            data.candidates?.[0]?.content?.parts?.[0]?.text || "";
 
-if (data.error) {
+        if (!result) {
 
-    console.error("GEMINI ERROR:", data.error);
+            console.error(
+                "Gemini không trả dữ liệu"
+            );
 
-    alert(data.error.message);
+            alert("AI không trả kết quả");
 
-    return;
-}
+            return;
+        }
 
-const result =
-    data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+        // =========================
+        // SHOW RESULT
+        // =========================
 
-if (!result) {
+        document.getElementById('summaryContent').innerText =
+            result;
 
-    console.error("Gemini không trả dữ liệu");
+        document.getElementById('actionContent').innerText =
+            result;
 
-    alert("AI không trả kết quả");
+        document.getElementById('conclusionContent').innerText =
+            result;
 
-    return;
-}
+        currentSegment.summary =
+            result;
+
+        currentSegment.actions =
+            result;
+
+        currentSegment.conclusion =
+            result;
+
+        autoSave();
+
+    } catch (error) {
+
+        console.error(error);
+
+        alert("Lỗi AI");
+    }
+};
 
     // =========================
     // LẤY KẾT QUẢ GEMINI
