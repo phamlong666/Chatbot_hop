@@ -155,7 +155,12 @@
     Xuất PDF
 </button>
 
-                <input type="file" id="uploadInput" class="hidden" />
+                <input
+    type="file"
+    id="uploadInput"
+    class="hidden"
+    accept=".docx,.txt,.xlsx,.xls"
+/>
 
                 <div id="statusIndicator"
                     class="hidden ml-auto items-center gap-2 text-red-600 font-bold">
@@ -569,10 +574,13 @@
             }
         );
 
-        const data = await response.json();
+        const data =
+    await response.json();
 
-        const result =
-            data.result || "";
+console.log(data);
+
+const result =
+    data.choices?.[0]?.message?.content || "";
 
         // ======================
         // PARSE AI RESULT
@@ -979,7 +987,14 @@ document.getElementById('pdfBtn').onclick = () => {
     // =========================
     // DOCX
     // =========================
+    if (fileName.endsWith('.doc')) {
 
+    alert(
+        "File .doc cũ không hỗ trợ.\nHãy lưu thành .docx rồi upload lại."
+    );
+
+    return;
+}
     if (fileName.endsWith('.docx')) {
 
         const arrayBuffer =
