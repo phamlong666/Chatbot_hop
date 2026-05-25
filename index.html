@@ -17,6 +17,8 @@
     <script src="https://unpkg.com/docx@7.1.0/build/index.js"></script>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <script src="https://unpkg.com/mammoth/mammoth.browser.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
@@ -965,60 +967,147 @@ document.getElementById('pdfBtn').onclick = () => {
         // FILE UPLOAD
         // =========================
 
-        document.getElementById('uploadInput').onchange = (e) => {
+        document.getElementById('uploadInput').onchange = async (e) => {
 
     const file = e.target.files[0];
 
     if (!file) return;
 
-    const reader = new FileReader();
+    const fileName =
+        file.name.toLowerCase();
+
+    // =========================
+    // DOCX
+    // =========================
+
+    if (fileName.endsWith('.docx')) {
+
+        const arrayBuffer =
+            await file.arrayBuffer();
+
+        const result =
+            await mammoth.extractRawText({
+                arrayBuffer
+            });
+
+        const content =
+            result.value;
+
+        loadContentToEditor(
+            content,
+            file.name
+        );
+
+        return;
+    }
+
+    // =========================
+    // EXCEL
+    // =========================
+
+    if (
+        fileName.endsWith('.xlsx') ||
+        fileName.endsWith('.xls')
+    ) {
+
+        const data =
+            await file.arrayBuffer();
+
+        const workbook =
+            XLSX.read(data);
+
+        let content = "";
+
+        workbook.SheetNames.forEach(sheetName => {
+
+            const worksheet =
+                workbook.Sheets[sheetName];
+
+            const sheetText =
+                XLSX.utils.sheet_to_csv(
+                    worksheet
+                );
+
+            content +=
+                `\n===== SHEET: ${sheetName} =====\n`;
+
+            content += sheetText;
+        });
+
+        loadContentToEditor(
+            content,
+            file.name
+        );
+
+        return;
+    }
+
+    // =========================
+    // TXT
+    // =========================
+
+    const reader =
+        new FileReader();
 
     reader.onload = function(event) {
 
         const content =
             event.target.result;
 
-        // Hiển thị nội dung lên editor
-        document.getElementById('editor').value =
-            content;
-
-        // Nếu chưa có segment thì tạo mới
-        if (!currentSegment) {
-
-            currentSegment = {
-
-                id: Date.now(),
-
-                start: new Date(),
-
-                end: null,
-
-                transcript: content,
-
-                summary: "",
-
-                actions: "",
-
-                conclusion: ""
-            };
-
-            segments.push(currentSegment);
-
-        } else {
-
-            currentSegment.transcript =
-                content;
-        }
-
-        renderSegments();
-
-        autoSave();
-
-        alert("Đã tải file: " + file.name);
+        loadContentToEditor(
+            content,
+            file.name
+        );
     };
 
-    reader.readAsText(file);
+    reader.readAsText(file, 'utf-8');
 };
+
+// =========================
+// LOAD CONTENT
+// =========================
+
+function loadContentToEditor(
+    content,
+    fileName
+) {
+
+    document.getElementById('editor').value =
+        content;
+
+    if (!currentSegment) {
+
+        currentSegment = {
+
+            id: Date.now(),
+
+            start: new Date(),
+
+            end: null,
+
+            transcript: content,
+
+            summary: "",
+
+            actions: "",
+
+            conclusion: ""
+        };
+
+        segments.push(currentSegment);
+
+    } else {
+
+        currentSegment.transcript =
+            content;
+    }
+
+    renderSegments();
+
+    autoSave();
+
+    alert("Đã tải file: " + fileName);
+}
 
     </script>
 
