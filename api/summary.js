@@ -39,7 +39,7 @@ export default async function handler(req, res) {
                             parts: [
                                 {
                                     text:
-`Bạn là AI tạo biên bản cuộc họp chuyên nghiệp.
+`Bạn là AI tạo biên bản cuộc họp.
 
 Hãy phân tích nội dung và trả về đúng format:
 
@@ -64,14 +64,13 @@ ${content}`
 
         const data = await response.json();
 
-        const text =
-            data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+        console.log("GEMINI DATA:", data);
 
-        res.status(200).json({
-            result: text
-        });
+        res.status(200).json(data);
 
     } catch (error) {
+
+        console.error(error);
 
         res.status(500).json({
             error: error.message
