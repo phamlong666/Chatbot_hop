@@ -1,251 +1,983 @@
 <!DOCTYPE html>
 <html lang="vi">
+
 <head>
-    <meta charset="utf-8" />
+    <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Trợ Lý Ghi Chú Cuộc Họp AI</title>
-    
+
+    <title>AI Meeting Assistant Pro</title>
+
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+
+    <link rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
     <script src="https://unpkg.com/docx@7.1.0/build/index.js"></script>
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
 
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
-        body { font-family: 'Inter', sans-serif; background-color: #f1f5f9; }
-        .editor-box { min-height: 450px; outline: none; transition: all 0.2s; }
-        .editor-box:focus { border-color: #2563eb; ring: 2px rgba(37,99,235,0.1); }
-        .recording-active { animation: pulse 1.5s infinite; color: #ef4444; }
-        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }
-        img { max-width: 100%; border-radius: 8px; margin: 15px 0; display: block; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); }
-        #temp-text { color: #94a3b8; font-style: italic; }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #f1f5f9;
+        }
+
+        .recording-active {
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.3;
+            }
+
+            100% {
+                opacity: 1;
+            }
+        }
+
+        textarea {
+            resize: none;
+        }
+
+        .segment-card {
+            transition: all 0.2s;
+        }
+
+        .segment-card:hover {
+            transform: translateY(-2px);
+        }
+
+        .custom-scroll::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .custom-scroll::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 20px;
+        }
     </style>
 </head>
-<body class="p-2 md:p-6">
 
-    <div class="max-w-4xl mx-auto bg-white shadow-2xl rounded-2xl overflow-hidden border border-gray-100">
-        <div class="bg-blue-700 p-6 text-white flex justify-between items-center">
-            <div>
+<body>
+
+    <div class="flex h-screen overflow-hidden">
+
+        <!-- SIDEBAR -->
+
+        <div class="w-80 bg-slate-900 text-white flex flex-col">
+
+            <div class="p-5 border-b border-slate-700">
+
                 <h1 class="text-2xl font-bold flex items-center gap-2">
-                    <i class="fa-solid fa-microphone-lines"></i> AI MEETING NOTES
+                    <i class="fa-solid fa-microphone-lines"></i>
+                    AI Meeting
                 </h1>
-                <p class="text-xs text-blue-100 uppercase tracking-widest mt-1">Bản quyền © 2025 by Phạm Hồng Long & Brown Eyes</p>
+
+                <p class="text-slate-400 text-sm mt-1">
+                    BrownEyes Enterprise
+                </p>
+
             </div>
-            <div id="statusIndicator" class="hidden items-center gap-2 bg-white/20 px-4 py-1.5 rounded-full text-xs font-bold border border-white/30">
-                <i class="fa-solid fa-circle recording-active"></i> ĐANG GHI ÂM
-            </div>
-        </div>
 
-        <div class="p-3 bg-gray-50 border-b flex flex-wrap gap-2 items-center">
-            <button id="startBtn" class="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-5 py-2.5 rounded-xl transition font-bold shadow-sm">
-                <i class="fa-solid fa-play"></i> Bắt đầu ghi
-            </button>
-            <button id="stopBtn" class="hidden flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white px-5 py-2.5 rounded-xl transition font-bold shadow-sm">
-                <i class="fa-solid fa-stop"></i> Dừng & Lưu
-            </button>
+            <div class="p-4 border-b border-slate-700">
 
-            <div class="h-8 w-px bg-gray-300 mx-2"></div>
-
-            <button onclick="document.getElementById('imgInput').click()" class="flex items-center gap-2 bg-white border border-gray-300 hover:bg-gray-100 px-4 py-2.5 rounded-xl transition font-medium">
-                <i class="fa-solid fa-image text-blue-500"></i> Chèn ảnh
-            </button>
-            <input type="file" id="imgInput" accept="image/*" class="hidden">
-
-            <button onclick="clearAll()" class="flex items-center gap-2 text-gray-400 hover:text-red-600 px-4 py-2.5 transition ml-auto font-medium">
-                <i class="fa-solid fa-trash-can"></i> Xóa hết
-            </button>
-        </div>
-
-        <div class="p-4 md:p-8">
-            <div id="editor" contenteditable="true" class="editor-box w-full p-6 bg-white border-2 border-gray-100 rounded-2xl overflow-y-auto text-gray-800 text-lg leading-relaxed shadow-inner">
-                <p id="placeholder" class="text-gray-400 italic font-light">Nội dung cuộc họp sẽ tự động hiển thị ở đây khi bạn nói...</p>
-            </div>
-        </div>
-
-        <div class="p-5 bg-gray-50 border-t flex flex-col md:flex-row justify-between items-center gap-4">
-            <div class="text-sm text-gray-400 flex items-center gap-2 font-medium">
-                <i class="fa-solid fa-cloud-arrow-up"></i> Đang chạy trên GitHub Pages (HTTPS)
-            </div>
-            <div class="flex gap-3 w-full md:w-auto">
-                <button onclick="exportWord()" class="flex-1 md:flex-none flex items-center justify-center gap-2 bg-blue-50 text-blue-700 hover:bg-blue-100 px-6 py-3 rounded-xl font-bold transition border border-blue-200">
-                    <i class="fa-solid fa-file-word"></i> Xuất Word
+                <button id="newMeetingBtn"
+                    class="w-full bg-blue-600 hover:bg-blue-700 py-3 rounded-xl font-bold transition">
+                    <i class="fa-solid fa-plus"></i>
+                    Cuộc họp mới
                 </button>
-                <button onclick="exportPDF()" class="flex-1 md:flex-none flex items-center justify-center gap-2 bg-gray-900 text-white hover:bg-black px-6 py-3 rounded-xl font-bold transition">
-                    <i class="fa-solid fa-file-pdf"></i> Xuất PDF
-                </button>
+
             </div>
+
+            <div id="segmentList"
+                class="flex-1 overflow-y-auto custom-scroll p-4 space-y-4">
+            </div>
+
         </div>
+
+        <!-- MAIN -->
+
+        <div class="flex-1 flex flex-col">
+
+            <!-- TOPBAR -->
+
+            <div class="bg-white border-b p-4 flex flex-wrap gap-3 items-center">
+
+                <button id="startBtn"
+                    class="bg-green-600 hover:bg-green-700 text-white px-5 py-2.5 rounded-xl font-bold transition">
+                    <i class="fa-solid fa-play"></i>
+                    Bắt đầu ghi
+                </button>
+
+                <button id="stopBtn"
+                    class="hidden bg-red-600 hover:bg-red-700 text-white px-5 py-2.5 rounded-xl font-bold transition">
+                    <i class="fa-solid fa-stop"></i>
+                    Dừng ghi
+                </button>
+
+                <button id="summaryBtn"
+                    class="bg-violet-600 hover:bg-violet-700 text-white px-5 py-2.5 rounded-xl font-bold transition">
+                    <i class="fa-solid fa-wand-magic-sparkles"></i>
+                    AI Tóm tắt
+                </button>
+
+                <button id="saveBtn"
+                    class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl font-bold transition">
+                    <i class="fa-solid fa-floppy-disk"></i>
+                    Lưu
+                </button>
+
+                <button id="downloadBtn"
+                    class="bg-slate-800 hover:bg-black text-white px-5 py-2.5 rounded-xl font-bold transition">
+                    <i class="fa-solid fa-download"></i>
+                    Tải báo cáo
+                </button>
+
+                <button onclick="document.getElementById('uploadInput').click()"
+                    class="bg-white border border-slate-300 px-5 py-2.5 rounded-xl font-bold transition hover:bg-slate-100">
+                    <i class="fa-solid fa-upload"></i>
+                    Upload
+                </button>
+		<button id="pdfBtn"
+    class="bg-red-600 hover:bg-red-700 text-white px-5 py-2.5 rounded-xl font-bold transition">
+    <i class="fa-solid fa-file-pdf"></i>
+    Xuất PDF
+</button>
+
+                <input type="file" id="uploadInput" class="hidden" />
+
+                <div id="statusIndicator"
+                    class="hidden ml-auto items-center gap-2 text-red-600 font-bold">
+                    <i class="fa-solid fa-circle recording-active"></i>
+                    ĐANG GHI ÂM
+                </div>
+
+            </div>
+
+            <!-- CONTENT -->
+
+            <div class="flex flex-1 overflow-hidden">
+
+                <!-- EDITOR -->
+
+                <div class="flex-1 p-5 overflow-hidden">
+
+                    <div class="bg-white rounded-2xl shadow h-full flex flex-col">
+
+                        <div class="border-b p-5 flex justify-between items-center">
+
+                            <div>
+                                <h2 class="text-2xl font-bold">
+                                    Transcript
+                                </h2>
+
+                                <p id="segmentTime"
+                                    class="text-slate-500 text-sm mt-1">
+                                    Chưa có đoạn ghi
+                                </p>
+                            </div>
+
+                        </div>
+
+                        <div class="flex-1 p-5 overflow-hidden">
+
+                            <textarea id="editor"
+                                class="w-full h-full border rounded-2xl p-5 text-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                placeholder="Nội dung cuộc họp sẽ hiển thị ở đây..."></textarea>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+                <!-- AI PANEL -->
+
+                <div class="w-[420px] bg-slate-100 border-l overflow-y-auto custom-scroll">
+
+                    <div class="p-5 space-y-5">
+
+                        <div class="bg-white rounded-2xl shadow p-5">
+
+                            <h3 class="font-bold text-lg mb-3">
+                                🤖 AI Tóm tắt
+                            </h3>
+
+                            <div id="summaryContent"
+                                class="text-slate-700 whitespace-pre-wrap">
+                                Chưa có dữ liệu...
+                            </div>
+
+                        </div>
+
+                        <div class="bg-white rounded-2xl shadow p-5">
+
+                            <h3 class="font-bold text-lg mb-3">
+                                📌 Công việc
+                            </h3>
+
+                            <div id="actionContent"
+                                class="text-slate-700 whitespace-pre-wrap">
+                                Chưa có dữ liệu...
+                            </div>
+
+                        </div>
+
+                        <div class="bg-white rounded-2xl shadow p-5">
+
+                            <h3 class="font-bold text-lg mb-3">
+                                ✅ Kết luận
+                            </h3>
+
+                            <div id="conclusionContent"
+                                class="text-slate-700 whitespace-pre-wrap">
+                                Chưa có dữ liệu...
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
     </div>
 
     <script>
-        // --- LOGIC NHẬN DIỆN GIỌNG NÓI ---
-        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+        // =========================
+        // DATA
+        // =========================
+
+        let segments = [];
+
+        let currentSegment = null;
+
+        let currentTranscript = "";
+
+        // =========================
+        // SPEECH RECOGNITION
+        // =========================
+
+        const SpeechRecognition =
+            window.SpeechRecognition ||
+            window.webkitSpeechRecognition;
+
         let recognition = null;
-        let finalContent = ""; // Kho lưu trữ chính thức cho văn bản đã xác nhận
-        let isFirstResult = true;
 
         if (SpeechRecognition) {
+
             recognition = new SpeechRecognition();
+
             recognition.lang = 'vi-VN';
+
             recognition.continuous = true;
+
             recognition.interimResults = true;
 
             recognition.onresult = (event) => {
-                // Xóa placeholder khi bắt đầu có âm thanh
-                if(isFirstResult) {
-                    const ph = document.getElementById('placeholder');
-                    if(ph) ph.remove();
-                    isFirstResult = false;
-                }
 
-                let interimTranscript = '';
-                
-                // Duyệt qua kết quả từ điểm mới nhất
-                for (let i = event.resultIndex; i < event.results.length; ++i) {
-                    const transcript = event.results[i][0].transcript;
+                let interimTranscript = "";
+
+                for (let i = event.resultIndex; i < event.results.length; i++) {
+
+                    const transcript =
+                        event.results[i][0].transcript;
+
                     if (event.results[i].isFinal) {
-                        finalContent += transcript + '. ';
+
+                        currentTranscript += transcript + ". ";
+
                     } else {
+
                         interimTranscript += transcript;
                     }
                 }
 
-                renderEditor(interimTranscript);
+                document.getElementById('editor').value =
+                    currentTranscript + interimTranscript;
             };
 
             recognition.onerror = (e) => {
-                console.error("Lỗi:", e.error);
-                if(e.error === 'not-allowed') alert("Vui lòng cấp quyền Micro trên trình duyệt!");
+
+                console.error(e);
+
+                alert("Lỗi ghi âm: " + e.error);
             };
         }
 
-        // Hàm vẽ lại nội dung lên màn hình để không bị lặp chữ
-        function renderEditor(interim = "") {
-            const editor = document.getElementById('editor');
-            
-            // Lấy tất cả các thẻ ảnh hiện có để bảo toàn chúng
-            const images = editor.querySelectorAll('img');
-            
-            // Xóa thẻ tạm cũ
-            const oldTemp = document.getElementById('temp-text');
-            if(oldTemp) oldTemp.remove();
+        // =========================
+        // BUTTONS
+        // =========================
 
-            // Nếu không có nội dung mới chốt, chỉ cập nhật chữ tạm
-            // Để giữ ảnh, ta sử dụng cấu trúc: [Nội dung cũ/Ảnh] + [Text mới chốt] + [Text tạm]
-            // Cách đơn giản nhất để giữ ảnh mà không lặp chữ:
-            const tempSpan = document.createElement('span');
-            tempSpan.id = 'temp-text';
-            tempSpan.innerText = interim;
+        const startBtn =
+            document.getElementById('startBtn');
 
-            // Cập nhật text node cuối cùng
-            editor.innerHTML = finalContent;
-            
-            // Chèn lại ảnh (nếu có) - trong phiên bản đơn giản này ảnh sẽ được append vào sau text
-            images.forEach(img => editor.appendChild(img));
-            
-            editor.appendChild(tempSpan);
-            editor.scrollTop = editor.scrollHeight;
-            saveToLocal();
-        }
+        const stopBtn =
+            document.getElementById('stopBtn');
 
-        // --- ĐIỀU KHIỂN ---
-        const startBtn = document.getElementById('startBtn');
-        const stopBtn = document.getElementById('stopBtn');
-        const statusInd = document.getElementById('statusIndicator');
+        const statusIndicator =
+            document.getElementById('statusIndicator');
+
+        // =========================
+        // START RECORD
+        // =========================
 
         startBtn.onclick = () => {
-            if (!recognition) return alert("Trình duyệt này không hỗ trợ ghi âm.");
-            // Đồng bộ nội dung hiện tại (phòng trường hợp người dùng xóa/sửa tay)
-            finalContent = document.getElementById('editor').innerText.replace("Nội dung...", "");
-            
+
+            if (!recognition) {
+
+                alert("Trình duyệt không hỗ trợ ghi âm");
+
+                return;
+            }
+
+            currentTranscript = "";
+
+            document.getElementById('editor').value = "";
+
+            currentSegment = {
+
+                id: Date.now(),
+
+                start: new Date(),
+
+                end: null,
+
+                transcript: "",
+
+                summary: "",
+
+                actions: "",
+
+                conclusion: ""
+            };
+
             recognition.start();
+
             startBtn.classList.add('hidden');
+
             stopBtn.classList.remove('hidden');
-            statusInd.classList.replace('hidden', 'flex');
+
+            statusIndicator.classList.remove('hidden');
+
+            statusIndicator.classList.add('flex');
+
+            document.getElementById('segmentTime').innerText =
+                "Đang ghi âm...";
         };
+
+        // =========================
+        // STOP RECORD
+        // =========================
 
         stopBtn.onclick = () => {
-            recognition.stop();
-            startBtn.classList.remove('hidden');
-            stopBtn.classList.add('hidden');
-            statusInd.classList.replace('flex', 'hidden');
-            
-            // Chuyển chữ tạm thành chữ thật khi dừng
-            const temp = document.getElementById('temp-text');
-            if(temp && temp.innerText !== "") {
-                finalContent += temp.innerText + '. ';
-                temp.remove();
-            }
-        };
 
-        // --- CHÈN ẢNH ---
-        document.getElementById('imgInput').onchange = (e) => {
-            const file = e.target.files[0];
-            if (file) {
-                if(isFirstResult) { document.getElementById('editor').innerHTML = ""; isFirstResult = false; }
-                const reader = new FileReader();
-                reader.onload = (ev) => {
-                    const img = document.createElement('img');
-                    img.src = ev.target.result;
-                    document.getElementById('editor').appendChild(img);
-                    saveToLocal();
-                };
-                reader.readAsDataURL(file);
-            }
-        };
+    recognition.stop();
 
-        // --- XUẤT FILE ---
-        function exportPDF() {
-            const element = document.getElementById('editor');
-            const opt = {
-                margin: 0.5,
-                filename: 'Bien_ban_cuoc_hop.pdf',
-                image: { type: 'jpeg', quality: 0.98 },
-                html2canvas: { scale: 2 },
-                jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
-            };
-            html2pdf().set(opt).from(element).save();
+    setTimeout(() => {
+
+        startBtn.classList.remove('hidden');
+
+        stopBtn.classList.add('hidden');
+
+        statusIndicator.classList.remove('flex');
+
+        statusIndicator.classList.add('hidden');
+
+        currentSegment.end = new Date();
+
+        currentSegment.transcript =
+            document.getElementById('editor').value;
+
+        if(currentSegment.transcript.trim() !== ""){
+
+            segments.push(currentSegment);
+
+            renderSegments();
+
+            autoSave();
         }
 
-        function exportWord() {
-            const content = document.getElementById('editor').innerText;
-            const doc = new docx.Document({
-                sections: [{
-                    children: [
-                        new docx.Paragraph({
-                            children: [new docx.TextRun({ text: "GHI CHÚ CUỘC HỌP AI", bold: true, size: 32 })],
-                            spacing: { after: 400 }
-                        }),
-                        new docx.Paragraph({ text: content, spacing: { line: 360 } })
-                    ]
-                }]
+        document.getElementById('segmentTime').innerText =
+            "Đã lưu đoạn ghi";
+
+    }, 1000);
+};
+
+        // =========================
+        // RENDER SEGMENTS
+        // =========================
+
+        function renderSegments() {
+
+            const segmentList =
+                document.getElementById('segmentList');
+
+            segmentList.innerHTML = "";
+
+            segments.forEach((segment, index) => {
+
+                const div =
+                    document.createElement('div');
+
+                div.className =
+                    'segment-card bg-slate-800 p-4 rounded-2xl';
+
+                div.innerHTML = `
+                
+                    <div class="flex justify-between items-center mb-3">
+
+                        <div class="font-bold">
+                            🎤 Đoạn ${index + 1}
+                        </div>
+
+                        <div class="text-xs text-slate-400">
+                            ${new Date(segment.start).toLocaleTimeString()}
+                        </div>
+
+                    </div>
+
+                    <div class="text-sm text-slate-300 line-clamp-3">
+                        ${segment.transcript.substring(0, 120)}
+                    </div>
+
+                    <div class="flex gap-2 mt-4">
+
+                        <button
+                            onclick="openSegment(${segment.id})"
+                            class="flex-1 bg-blue-600 hover:bg-blue-700 py-2 rounded-lg text-sm font-bold transition">
+                            Mở
+                        </button>
+
+                        <button
+                            onclick="deleteSegment(${segment.id})"
+                            class="flex-1 bg-red-600 hover:bg-red-700 py-2 rounded-lg text-sm font-bold transition">
+                            Xóa
+                        </button>
+
+                    </div>
+                `;
+
+                segmentList.appendChild(div);
             });
-            docx.Packer.toBlob(doc).then(blob => saveAs(blob, "Ghi_chu_cuoc_hop.docx"));
         }
 
-        // --- LƯU TRỮ ---
-        function saveToLocal() {
-            localStorage.setItem('meeting_note_v2', document.getElementById('editor').innerHTML);
+        // =========================
+        // OPEN SEGMENT
+        // =========================
+
+        function openSegment(id) {
+
+            const segment =
+                segments.find(s => s.id === id);
+
+            if (!segment) return;
+
+            currentSegment = segment;
+
+            document.getElementById('editor').value =
+                segment.transcript;
+
+            document.getElementById('summaryContent').innerText =
+                segment.summary || "Chưa có dữ liệu";
+
+            document.getElementById('actionContent').innerText =
+                segment.actions || "Chưa có dữ liệu";
+
+            document.getElementById('conclusionContent').innerText =
+                segment.conclusion || "Chưa có dữ liệu";
+
+            document.getElementById('segmentTime').innerText =
+                new Date(segment.start).toLocaleString();
         }
 
-        function clearAll() {
-            if(confirm("Bạn muốn xóa toàn bộ nội dung để bắt đầu cuộc họp mới?")) {
-                finalContent = "";
-                document.getElementById('editor').innerHTML = '<p id="placeholder" class="text-gray-400 italic">Nội dung...</p>';
-                isFirstResult = true;
-                localStorage.removeItem('meeting_note_v2');
+        // =========================
+        // DELETE SEGMENT
+        // =========================
+
+        function deleteSegment(id) {
+
+            if (!confirm("Xóa đoạn ghi này?")) return;
+
+            segments =
+                segments.filter(s => s.id !== id);
+
+            renderSegments();
+
+            autoSave();
+        }
+
+        // =========================
+        // AI SUMMARY
+        // =========================
+
+        document.getElementById('summaryBtn').onclick = async () => {
+
+    if (!currentSegment) {
+
+        alert("Chưa có đoạn ghi");
+
+        return;
+    }
+
+    const content =
+        document.getElementById('editor').value;
+
+    if (content.trim() === "") {
+
+        alert("Không có nội dung");
+
+        return;
+    }
+
+    document.getElementById('summaryContent').innerText =
+        "🤖 AI đang phân tích...";
+
+    document.getElementById('actionContent').innerText =
+        "Đang tạo công việc...";
+
+    document.getElementById('conclusionContent').innerText =
+        "Đang tạo kết luận...";
+
+    try {
+
+        const response = await fetch(
+            '/api/summary',
+            {
+                method: 'POST',
+
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+
+                body: JSON.stringify({
+                    content
+                })
             }
+        );
+
+        const data = await response.json();
+
+        const result =
+            data.result || "";
+
+        // ======================
+        // PARSE AI RESULT
+        // ======================
+
+        let summary = "";
+        let actions = "";
+        let conclusion = "";
+
+        if (result.includes("CÔNG VIỆC:")) {
+
+            const parts =
+                result.split("CÔNG VIỆC:");
+
+            summary =
+                parts[0]
+                .replace("TÓM TẮT:", "")
+                .trim();
+
+            const subParts =
+                parts[1].split("KẾT LUẬN:");
+
+            actions =
+                subParts[0].trim();
+
+            conclusion =
+                subParts[1]
+                ? subParts[1].trim()
+                : "";
+
+        } else {
+
+            summary = result;
         }
+
+        document.getElementById('summaryContent').innerText =
+            summary;
+
+        document.getElementById('actionContent').innerText =
+            actions;
+
+        document.getElementById('conclusionContent').innerText =
+            conclusion;
+
+        currentSegment.summary =
+            summary;
+
+        currentSegment.actions =
+            actions;
+
+        currentSegment.conclusion =
+            conclusion;
+
+        autoSave();
+
+    } catch (error) {
+
+        console.error(error);
+
+        alert("Lỗi AI");
+    }
+};
+
+        // =========================
+        // SAVE
+        // =========================
+
+        document.getElementById('saveBtn').onclick = () => {
+
+            autoSave();
+
+            alert("Đã lưu dữ liệu");
+        };
+
+        // =========================
+        // AUTOSAVE
+        // =========================
+
+        function autoSave() {
+
+            localStorage.setItem(
+                'meeting_segments',
+                JSON.stringify(segments)
+            );
+        }
+
+        // =========================
+        // LOAD DATA
+        // =========================
 
         window.onload = () => {
-            const saved = localStorage.getItem('meeting_note_v2');
-            if (saved && saved.length > 20) {
-                document.getElementById('editor').innerHTML = saved;
-                isFirstResult = false;
-                finalContent = document.getElementById('editor').innerText;
+
+            const saved =
+                localStorage.getItem('meeting_segments');
+
+            if (saved) {
+
+                segments = JSON.parse(saved);
+
+                renderSegments();
             }
         };
+
+        // =========================
+        // NEW MEETING
+        // =========================
+
+        document.getElementById('newMeetingBtn').onclick = () => {
+
+            if (!confirm("Tạo cuộc họp mới?")) return;
+
+            segments = [];
+
+            currentSegment = null;
+
+            currentTranscript = "";
+
+            document.getElementById('editor').value = "";
+
+            document.getElementById('summaryContent').innerText =
+                "Chưa có dữ liệu...";
+
+            document.getElementById('actionContent').innerText =
+                "Chưa có dữ liệu...";
+
+            document.getElementById('conclusionContent').innerText =
+                "Chưa có dữ liệu...";
+
+            renderSegments();
+
+            autoSave();
+        };
+
+        // =========================
+        // EXPORT REPORT
+        // =========================
+
+// =========================
+// EXPORT WORD
+// =========================
+
+document.getElementById('downloadBtn').onclick = async () => {
+
+    if (
+        currentSegment &&
+        document.getElementById('editor').value.trim() !== ""
+    ) {
+
+        currentSegment.transcript =
+            document.getElementById('editor').value;
+    }
+
+    if (segments.length === 0) {
+
+        alert("Chưa có dữ liệu để xuất");
+
+        return;
+    }
+
+    const children = [];
+
+    children.push(
+
+        new docx.Paragraph({
+            alignment: docx.AlignmentType.CENTER,
+            spacing: { after: 400 },
+            children: [
+                new docx.TextRun({
+                    text: "BIÊN BẢN CUỘC HỌP",
+                    bold: true,
+                    size: 36,
+                    font: "Times New Roman"
+                })
+            ]
+        })
+    );
+
+    segments.forEach((segment, index) => {
+
+        children.push(
+
+            new docx.Paragraph({
+                spacing: { before: 300, after: 200 },
+                children: [
+                    new docx.TextRun({
+                        text: `ĐOẠN GHI ${index + 1}`,
+                        bold: true,
+                        size: 28,
+                        font: "Times New Roman"
+                    })
+                ]
+            })
+        );
+
+        children.push(
+            new docx.Paragraph({
+                children: [
+                    new docx.TextRun({
+                        text: `Thời gian: ${new Date(segment.start).toLocaleString()}`,
+                        font: "Times New Roman"
+                    })
+                ]
+            })
+        );
+
+        children.push(
+            new docx.Paragraph({
+                children: [
+                    new docx.TextRun({
+                        text: "Transcript:",
+                        bold: true,
+                        font: "Times New Roman"
+                    })
+                ]
+            })
+        );
+
+        children.push(
+            new docx.Paragraph({
+                text: segment.transcript || "",
+            })
+        );
+
+        children.push(
+            new docx.Paragraph({
+                children: [
+                    new docx.TextRun({
+                        text: "Tóm tắt:",
+                        bold: true,
+                        font: "Times New Roman"
+                    })
+                ]
+            })
+        );
+
+        children.push(
+            new docx.Paragraph({
+                text: segment.summary || ""
+            })
+        );
+
+        children.push(
+            new docx.Paragraph({
+                children: [
+                    new docx.TextRun({
+                        text: "Công việc:",
+                        bold: true,
+                        font: "Times New Roman"
+                    })
+                ]
+            })
+        );
+
+        children.push(
+            new docx.Paragraph({
+                text: segment.actions || ""
+            })
+        );
+
+        children.push(
+            new docx.Paragraph({
+                children: [
+                    new docx.TextRun({
+                        text: "Kết luận:",
+                        bold: true,
+                        font: "Times New Roman"
+                    })
+                ]
+            })
+        );
+
+        children.push(
+            new docx.Paragraph({
+                text: segment.conclusion || ""
+            })
+        );
+
+    });
+
+    const doc = new docx.Document({
+        sections: [
+            {
+                properties: {},
+                children
+            }
+        ]
+    });
+
+    const blob =
+        await docx.Packer.toBlob(doc);
+
+    saveAs(blob, "Bien_ban_cuoc_hop.docx");
+};
+
+
+// =========================
+// EXPORT PDF
+// =========================
+
+document.getElementById('pdfBtn').onclick = () => {
+
+    if (
+        currentSegment &&
+        document.getElementById('editor').value.trim() !== ""
+    ) {
+
+        currentSegment.transcript =
+            document.getElementById('editor').value;
+
+        if (!segments.includes(currentSegment)) {
+
+            segments.push(currentSegment);
+        }
+    }
+
+    if (segments.length === 0) {
+
+        alert("Chưa có dữ liệu để xuất");
+
+        return;
+    }
+
+    let html = `
+        <div style="
+            padding:40px;
+            font-family:'Times New Roman',serif;
+            color:#000;
+            line-height:1.8;
+            font-size:16px;
+        ">
+            <h1 style="text-align:center;">
+                BIÊN BẢN CUỘC HỌP
+            </h1>
+    `;
+
+    segments.forEach((segment, index) => {
+
+        html += `
+            <hr/>
+
+            <h2>ĐOẠN ${index + 1}</h2>
+
+            <p>
+                <b>Thời gian:</b>
+                ${new Date(segment.start).toLocaleString()}
+            </p>
+
+            <h3>Transcript</h3>
+            <p>${segment.transcript || ""}</p>
+
+            <h3>Tóm tắt</h3>
+            <p>${segment.summary || ""}</p>
+
+            <h3>Công việc</h3>
+            <p>${segment.actions || ""}</p>
+
+            <h3>Kết luận</h3>
+            <p>${segment.conclusion || ""}</p>
+        `;
+    });
+
+    html += `</div>`;
+
+    const div =
+        document.createElement('div');
+
+    div.innerHTML = html;
+
+    html2pdf()
+        .set({
+            margin: 10,
+            filename: 'Bien_ban_cuoc_hop.pdf',
+            image: {
+                type: 'jpeg',
+                quality: 1
+            },
+            html2canvas: {
+                scale: 3,
+                useCORS: true
+            },
+            jsPDF: {
+                unit: 'mm',
+                format: 'a4',
+                orientation: 'portrait'
+            }
+        })
+        .from(div)
+        .save();
+};
+
+        // =========================
+        // FILE UPLOAD
+        // =========================
+
+        document.getElementById('uploadInput').onchange = (e) => {
+
+            const file = e.target.files[0];
+
+            if (!file) return;
+
+            alert("Đã upload file: " + file.name);
+        };
+
     </script>
+
 </body>
+
 </html>
