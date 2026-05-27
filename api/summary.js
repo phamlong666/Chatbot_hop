@@ -41,16 +41,7 @@ export default async function handler(req, res) {
                                     text:
 `Bạn là AI tạo biên bản cuộc họp.
 
-Hãy phân tích nội dung và trả về đúng format:
-
-TÓM TẮT:
-...
-
-CÔNG VIỆC:
-...
-
-KẾT LUẬN:
-...
+Hãy tóm tắt ngắn gọn nội dung cuộc họp bằng tiếng Việt chuyên nghiệp
 
 Nội dung cuộc họp:
 ${content}`
