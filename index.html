@@ -226,32 +226,7 @@
 
                         </div>
 
-                        <div class="bg-white rounded-2xl shadow p-5">
-
-                            <h3 class="font-bold text-lg mb-3">
-                                📌 Công việc
-                            </h3>
-
-                            <div id="actionContent"
-                                class="text-slate-700 whitespace-pre-wrap">
-                                Chưa có dữ liệu...
-                            </div>
-
-                        </div>
-
-                        <div class="bg-white rounded-2xl shadow p-5">
-
-                            <h3 class="font-bold text-lg mb-3">
-                                ✅ Kết luận
-                            </h3>
-
-                            <div id="conclusionContent"
-                                class="text-slate-700 whitespace-pre-wrap">
-                                Chưa có dữ liệu...
-                            </div>
-
-                        </div>
-
+                       
                     </div>
 
                 </div>
@@ -364,12 +339,9 @@
 
                 transcript: "",
 
-                summary: "",
+                summary: ""
 
-                actions: "",
-
-                conclusion: ""
-            };
+                };
 
             recognition.start();
 
@@ -500,12 +472,6 @@
             document.getElementById('summaryContent').innerText =
                 segment.summary || "Chưa có dữ liệu";
 
-            document.getElementById('actionContent').innerText =
-                segment.actions || "Chưa có dữ liệu";
-
-            document.getElementById('conclusionContent').innerText =
-                segment.conclusion || "Chưa có dữ liệu";
-
             document.getElementById('segmentTime').innerText =
                 new Date(segment.start).toLocaleString();
         }
@@ -551,12 +517,6 @@ document.getElementById('summaryBtn').onclick = async () => {
 
     document.getElementById('summaryContent').innerText =
         "🤖 AI đang phân tích...";
-
-    document.getElementById('actionContent').innerText =
-        "Đang tạo công việc...";
-
-    document.getElementById('conclusionContent').innerText =
-        "Đang tạo kết luận...";
 
     try {
 
@@ -621,13 +581,7 @@ document.getElementById('summaryBtn').onclick = async () => {
             document.getElementById('summaryContent').innerText =
                 "Không có dữ liệu AI";
 
-            document.getElementById('actionContent').innerText =
-                "Không có dữ liệu AI";
-
-            document.getElementById('conclusionContent').innerText =
-                "Không có dữ liệu AI";
-
-            return;
+             return;
         }
 
         // =========================
@@ -637,12 +591,7 @@ document.getElementById('summaryBtn').onclick = async () => {
         document.getElementById('summaryContent').innerText =
             result;
 
-        document.getElementById('actionContent').innerText =
-            "Đã tạo công việc";
-
-        document.getElementById('conclusionContent').innerText =
-            "Đã tạo kết luận";
-
+        
         currentSegment.summary =
             result;
 
@@ -713,12 +662,6 @@ document.getElementById('summaryBtn').onclick = async () => {
             document.getElementById('editor').value = "";
 
             document.getElementById('summaryContent').innerText =
-                "Chưa có dữ liệu...";
-
-            document.getElementById('actionContent').innerText =
-                "Chưa có dữ liệu...";
-
-            document.getElementById('conclusionContent').innerText =
                 "Chưa có dữ liệu...";
 
             renderSegments();
